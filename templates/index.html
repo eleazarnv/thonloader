@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Thonloader</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #0a0a0a;
+      color: #e0e0e0;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .card {
+      background: #111;
+      border: 1px solid #1a1a1a;
+      border-radius: 8px;
+      padding: 40px;
+      width: 460px;
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      font-weight: 300;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: #fff;
+      margin-bottom: 30px;
+      text-align: center;
+    }
+
+    label {
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #555;
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px 14px;
+      background: #0a0a0a;
+      border: 1px solid #222;
+      border-radius: 4px;
+      color: #fff;
+      font-size: 14px;
+      margin-bottom: 20px;
+      transition: border 0.3s;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: #8b0000;
+    }
+
+    #preview {
+      margin-bottom: 20px;
+      overflow: hidden;
+      max-height: 0;
+      transition: max-height 0.5s ease, opacity 0.4s ease;
+      opacity: 0;
+    }
+
+    #preview.visible {
+      max-height: 400px;
+      opacity: 1;
+    }
+
+    /* SELECT PERSONALIZADO */
+    .select-wrapper {
+      position: relative;
+      margin-bottom: 20px;
+    }
+
+    .select-wrapper::after {
+      content: '▼';
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #8b0000;
+      font-size: 10px;
+      pointer-events: none;
+      transition: transform 0.3s;
+    }
+
+    select {
+      width: 100%;
+      padding: 10px 14px;
+      background: #0a0a0a;
+      border: 1px solid #222;
+      border-radius: 4px;
+      color: #fff;
+      font-size: 14px;
+      appearance: none;
+      cursor: pointer;
+      transition: border 0.3s;
+    }
+
+    select:focus {
+      outline: none;
+      border-color: #8b0000;
+    }
+
+    select option {
+      background: #111;
+      padding: 10px;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      background: #8b0000;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      letter-spacing: 1px;
+      transition: background 0.2s, opacity 0.2s, transform 0.1s;
+    }
+
+    button:hover:not(:disabled) { background: #6b0000; transform: scale(1.01); }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    #estado {
+      margin-top: 20px;
+      text-align: center;
+      font-size: 13px;
+      color: #8b0000;
+      letter-spacing: 1px;
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 20px;
+      color: #333;
+      font-size: 11px;
+      letter-spacing: 2px;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- MODAL -->
+  <div id="modal" style="
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.85); display: flex;
+    justify-content: center; align-items: center; z-index: 99999;
+  ">
+    <div style="
+      background: #111; border: 1px solid #1a1a1a;
+      border-radius: 8px; padding: 40px; width: 400px; text-align: center;
+      animation: fadeIn 0.3s ease;
+    ">
+      <h2 style="color:#fff;font-weight:300;letter-spacing:3px;margin-bottom:20px;">THONLOADER</h2>
+      <p style="color:#888;font-size:13px;line-height:1.8;margin-bottom:25px;">
+        1. Pega el link de un video de YouTube<br>
+        2. Espera a que cargue la vista previa<br>
+        3. Elige la calidad<br>
+        4. Presiona Descargar<br><br>
+        <span style="color:#8b0000;">⚠️ No uses links de playlists, puede tardar mucho.</span>
+      </p>
+      <button onclick="cerrarModal()">Entendido</button>
+    </div>
+  </div>
+
+  <!-- APP -->
+  <div class="card">
+    <h1>Thonloader</h1>
+
+    <label>Link del video</label>
+    <input type="text" id="url" placeholder="https://youtube.com/watch?v=..." onblur="obtenerInfo()">
+
+    <div id="preview"></div>
+
+    <label>Calidad</label>
+    <div class="select-wrapper">
+      <select id="calidad">
+        <option value="1">1080p</option>
+        <option value="2">720p</option>
+        <option value="3">480p</option>
+        <option value="4">Solo audio (mp3)</option>
+      </select>
+    </div>
+
+    <button id="btnDescargar" onclick="descargar()" disabled>Descargar</button>
+    <p id="estado"></p>
+
+    <footer>Made by eleazarnv</footer>
+  </div>
+
+  <script>
+    function cerrarModal() {
+      document.getElementById('modal').style.display = 'none';
+    }
+
+    async function obtenerInfo() {
+      const url = document.getElementById('url').value;
+      if (!url) return;
+
+      const preview = document.getElementById('preview');
+      preview.classList.remove('visible');
+      preview.innerHTML = '<p style="color:#555;font-size:12px;">Cargando...</p>';
+      preview.classList.add('visible');
+      document.getElementById('btnDescargar').disabled = true;
+
+      const res = await fetch('/info', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url })
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        preview.innerHTML = `<p style="color:#8b0000;font-size:13px;">${err.error}</p>`;
+        return;
+      }
+
+      const data = await res.json();
+      preview.innerHTML = `
+        <img src="${data.miniatura}" style="width:100%;border-radius:6px;margin-bottom:10px;">
+        <p style="color:#fff;font-size:13px;margin-bottom:4px;">${data.titulo}</p>
+        <p style="color:#555;font-size:11px;">${data.canal} · ${data.duracion}</p>
+      `;
+
+      document.getElementById('btnDescargar').disabled = false;
+    }
+
+    function mostrarAviso(msg) {
+      const aviso = document.createElement('div');
+      aviso.innerText = msg;
+      aviso.style.cssText = `
+        position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+        background: #111; color: #fff;
+        border: 1px solid #8b0000;
+        padding: 12px 24px; border-radius: 4px;
+        font-size: 13px; letter-spacing: 0.5px;
+        z-index: 9999; text-align: center;
+        animation: fadeIn 0.3s ease;
+      `;
+      document.body.appendChild(aviso);
+      setTimeout(() => aviso.remove(), 5000);
+    }
+
+    async function descargar() {
+      const url = document.getElementById('url').value;
+      const calidad = document.getElementById('calidad').value;
+
+      if (!url) { document.getElementById('estado').innerText = 'Pega un link primero'; return; }
+
+      if (url.includes('list=')) {
+        mostrarAviso('⚠️ Este link es una playlist y puede tardar mucho.');
+      }
+
+      document.getElementById('estado').innerText = 'Descargando...';
+      document.getElementById('btnDescargar').disabled = true;
+
+      const res = await fetch('/descargar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url, calidad })
+      });
+
+      const blob = await res.blob();
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = res.headers.get('Content-Disposition').split('filename=')[1].replace(/"/g, '');
+      link.click();
+
+      document.getElementById('estado').innerText = '✓ Descarga completada';
+      document.getElementById('btnDescargar').disabled = false;
+    }
+  </script>
+</body>
+</html>
